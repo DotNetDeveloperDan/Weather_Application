@@ -1,0 +1,85 @@
+# .gitignore for a C# project
+
+# Build Folders
+bin/
+obj/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Auto-generated files
+*.pidb
+*.log
+*.scc
+*.cache
+*.css
+*.less
+*.scss
+*.sass
+*.min.js
+*.min.css
+*.map
+*.d.ts
+
+# Backup & report files
+*.mdf
+*.ldf
+*.ndb
+*.btr
+*.filelist
+*.DS_Store
+*.patch
+
+# Web specific files
+node_modules/
+bower_components/
+jspm_packages/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# C# specific ignore rules
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.class
+*.jar
+*.war
+*.ear
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+
+# Rider & ReSharper
+.idea/
+*.sln.iml
+*.sln.ide/
+_ReSharper*/
+*.[Cc]ache/
+# optional, if you have code coverage enabled in Rider
+coverage-report/
+
+# Visual Studio Code
+.vscode/
+.vscode/*
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# NPM Packages
+node_modules/
+yarn-error.log
+
+# End of file should be a newline
