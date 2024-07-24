@@ -1,0 +1,41 @@
+﻿@page "/register"
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+@inject NavigationManager NavigationManager
+
+<h3>Register</h3>
+
+<EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label for="username">Username</label>
+        <InputText id="username" @bind-Value="registerModel.Username" />
+    </div>
+    <div>
+        <label for="password">Password</label>
+        <InputText id="password" type="password" @bind-Value="registerModel.Password" />
+    </div>
+    <button type="submit">Register</button>
+</EditForm>
+
+@code {
+    private RegisterModel registerModel = new RegisterModel();
+
+    private async Task HandleRegister()
+    {
+        var user = new IdentityUser { UserName = registerModel.Username };
+        var result = await UserManager.CreateAsync(user, registerModel.Password);
+        if (result.Succeeded)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+
+    private class RegisterModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+}

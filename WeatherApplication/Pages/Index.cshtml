@@ -1,0 +1,36 @@
+﻿@page "/index"
+@using Microsoft.AspNetCore.Identity
+@model WeatherApplication.Pages.IndexModel
+@inject SignInManager<IdentityUser> SignInManager
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Page</title>
+</head>
+<body>
+<h3>Login Page</h3>
+
+<form method="get">
+    <div>
+        <label for="user">User:</label>
+        <input type="text" id="username" name="username" value="@Model.username" />
+    </div>
+    <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" value="@Model.password" />
+    </div>
+    <button type="submit">Login</button>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <p style="color:red">@Model.ErrorMessage</p>
+}
+
+@if (Model.LoginAttempted)
+{
+    <p>Login attempt with user: @Model.User</p>
+}
+</body>
+</html>

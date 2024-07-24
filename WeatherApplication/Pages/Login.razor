@@ -1,0 +1,66 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject ILogger<Login> Logger
+
+<h3>Login</h3>
+
+<EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label for="username">Username</label>
+        <InputText id="username" @bind-Value="loginModel.Username" />
+    </div>
+    <div>
+        <label for="password">Password</label>
+        <InputText id="password" type="password" @bind-Value="loginModel.Password" />
+    </div>
+    <button type="submit">Login</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+
+@code {
+    private LoginModel loginModel = new LoginModel();
+    private string errorMessage;
+
+    private async Task HandleLogin()
+    {
+
+        NavigationManager.NavigateTo($"/index?Username={loginModel.Username}&Password={loginModel.Password}", forceLoad: true);
+
+
+        // try
+        // {
+        //     var result = await SignInManager.PasswordSignInAsync(loginModel.Username, loginModel.Password, false, false);
+        //     if (result.Succeeded)
+        //     {
+        //         // Ensure navigation occurs after authentication completes
+                
+        //     }
+        //     else
+        //     {
+        //         // Handle login failure
+        //         errorMessage = "Invalid login attempt.";
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     Logger.LogError(ex, "An error occurred during the login process.");
+        //     errorMessage = "An unexpected error occurred. Please try again.";
+        // }
+    }
+
+    private class LoginModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+}
