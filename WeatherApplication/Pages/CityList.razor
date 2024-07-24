@@ -1,0 +1,319 @@
+﻿@page "/cities"
+@using WeatherApplication.Components
+@using WeatherApplication.Models
+@using WeatherApplication.Services.Implementations
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ToastService ToastService
+
+<h3>Cities</h3>
+<EditForm Model="this">
+    <div class="mb-3">
+        <label class="form-label">City</label>
+        <InputText class="form-control" @bind-Value="EnteredCityName" />
+        @if (string.IsNullOrWhiteSpace(EnteredCityName) && isSubmitted)
+        {
+            <div class="text-danger">City is required</div>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Country</label>
+        <InputText class="form-control" @bind-Value="EnteredCountryName" />
+        @if (string.IsNullOrWhiteSpace(EnteredCountryName) && isSubmitted)
+        {
+            <div class="text-danger">Country is required</div>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Latitude</label>
+        <InputNumber class="form-control" @bind-Value="EnteredLatitude" />
+        @if ((EnteredLatitude == null || EnteredLatitude==0) && isSubmitted)
+        {
+            <div class="text-danger">Latitude is required</div>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Longitude</label>
+        <InputNumber class="form-control" @bind-Value="EnteredLongitude" />
+        @if ((EnteredLongitude == null || EnteredLongitude==0) && isSubmitted)
+        {
+            <div class="text-danger">Longitude is required</div>
+        }
+    </div>
+
+    <button class="btn btn-primary" @onclick="SubmitCity">Add to Watch List</button>
+</EditForm>
+<br />
+<br />
+<h2>Watch List</h2>
+<ul class="city-list">
+    @foreach (var city in cities)
+    {
+        <li >
+            <CityWeatherComponent city="@city" OnShowSuccessToast="ShowSuccessToast" OnShowErrorToast="ShowErrorToast" OnDelete="PopulateCities" />
+            <button class="btn btn-outline-warning btn-sm" @onclick="() => ShowUpdateForm(city)">Update</button>
+            <button class="btn btn-danger btn-sm" @onclick="() => DeleteCityFromDatabase(city)">Delete</button>
+        </li>
+    }
+</ul>
+<!-- Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateModalLabel">Update City Information</h5>
+                <button type="button" @onclick="HideUpdateForm" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@selectedCity" OnValidSubmit="HandleUpdate">
+                    <DataAnnotationsValidator />
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <InputText class="form-control" @bind-Value="selectedCity.Name" />
+                    </div>
+                    <div class="form-group">
+                        <label>Country:</label>
+                        <InputText class="form-control" @bind-Value="selectedCity.Country" />
+                    </div>
+                    <div class="form-group">
+                        <label>Latitude:</label>
+                        <InputNumber class="form-control" @bind-Value="selectedCity.Latitude" />
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude:</label>
+                        <InputNumber class="form-control" @bind-Value="selectedCity.Longitude" />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" @onclick="HideUpdateForm">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    public string EnteredCityName { get; set; } = string.Empty;
+    public string EnteredCountryName { get; set; } = string.Empty;
+    public double? EnteredLatitude { get; set; } = 0;
+    public double? EnteredLongitude { get; set; } = 0;
+    private bool isSubmitted = false;
+    private List<City> cities = new();
+    private City selectedCity = new();
+    private WeatherData weatherData;
+    private Timer timer;
+    private bool isLoading;
+    private bool showUpdateForm;
+
+    public CityList()
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PopulateCities();
+
+    }
+
+    private async Task PopulateCities()
+    {
+
+        try
+        {
+            cities = await Http.GetFromJsonAsync<List<City>>("https://localhost:7069/api/cities");
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast("Unable to load cities.");
+            cities = new List<City>();
+        }
+
+
+    }
+
+    private async Task SubmitCity()
+    {
+        try
+        {
+            isSubmitted = true;
+
+            if (!string.IsNullOrWhiteSpace(EnteredCityName) &&
+                !string.IsNullOrWhiteSpace(EnteredCountryName) &&
+                EnteredLatitude != null &&
+                EnteredLongitude != null)
+            {
+
+
+
+                var cityToSubmit = new City()
+                {
+                    Name = EnteredCityName,
+                    Country = EnteredCountryName,
+                    Latitude = EnteredLatitude.GetValueOrDefault(),
+                    Longitude = EnteredLongitude.GetValueOrDefault()
+                };
+                var returnValue = await Http.PostAsJsonAsync<City>("https://localhost:7069/api/cities", cityToSubmit);
+                ShowSuccessToast("City has been successfully added.");
+                await PopulateCities();
+                isSubmitted = false;
+                ClearInputs();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast("Unable to load save city.");
+            isSubmitted = false;
+        }
+      
+
+    }
+
+    private void ClearInputs()
+    {
+        EnteredCityName = string.Empty;
+        EnteredCountryName = string.Empty;
+        EnteredLatitude = 0;
+        EnteredLongitude = 0;
+        StateHasChanged();
+    }
+
+
+    // private async Task SelectCity(int id)
+    // {
+    //     try
+    //     {
+    //         selectedCity = await GetCityInformationFromDatabase(id);
+    //         await LoadWeatherData(selectedCity);
+    //         StartWeatherDataTimer(selectedCity);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         throw;
+    //     }
+    // }
+
+    // private async Task<City> GetCityInformationFromDatabase(int cityId)
+    // {
+    //     try
+    //     {
+    //         return await Http.GetFromJsonAsync<City>($"https:localhost:7069/api/cities/{cityId}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         ShowErrorToast($"Unable to load city information from database. CityId: {cityId}");
+    //         return new City();
+    //     }
+
+    // }
+    private async Task DeleteCityFromDatabase(City city)
+    {
+        try
+        {
+             await Http.DeleteAsync($"https://localhost:7069/api/cities/{city.Id}");
+            ShowSuccessToast("City has been successfully removed.");
+            await PopulateCities();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast($"Unable to remove the city with ID {city.Id} from database.");
+           
+        }
+
+    }
+
+    private async Task ShowUpdateForm(City city)
+    {
+        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('updateModal').classList.add('show'); document.getElementById('updateModal').style.display = 'block';");
+        selectedCity = city;
+        
+
+    }
+    private async Task HandleUpdate()
+    {
+        // Update city data logic here
+
+        await UpdateCity(selectedCity.Id, selectedCity);
+        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('updateModal').classList.remove('show'); document.getElementById('updateModal').style.display = 'none';");
+    }
+
+    private async Task HideUpdateForm()
+    {
+        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('updateModal').classList.remove('show'); document.getElementById('updateModal').style.display = 'none';");
+    }
+
+    private async Task UpdateCity(int id, City city)
+    {
+        try
+        {
+            await Http.PutAsJsonAsync($"https://localhost:7069/api/cities/{city.Id}",city);
+            ShowSuccessToast("City has been successfully updated.");
+            await PopulateCities();
+            await InvokeAsync(StateHasChanged);
+
+        }
+        catch (Exception ex)
+        {
+            ShowErrorToast($"Unable to update the city with ID {city.Id} in the database.");
+        }
+
+    }
+
+
+
+    // private async Task LoadWeatherData(City selectedCityPassedIn)
+    // {
+    //     try
+    //     {
+    //         isLoading = true;
+    //         weatherData = await Http.GetFromJsonAsync<WeatherData>($"https://localhost:7069/api/weather/city/{selectedCityPassedIn.Id}");
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         ShowErrorToast($"Unable to load weather data for city. Name:{selectedCityPassedIn.Name} Latitude: {selectedCityPassedIn.Latitude} Longitude: {selectedCityPassedIn.Longitude}");
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     finally
+    //     {
+    //         isLoading = false;
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    // }
+
+    // private void StartWeatherDataTimer(City selectedCityPassedIn)
+    // {
+    //     // Stop any existing timer
+    //     timer?.Dispose();
+
+    //     // Create a new timer to load weather data every 1 minute
+    //     timer = new Timer(async _ => await LoadWeatherData(selectedCityPassedIn), null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+    // }
+
+    private void ShowSuccessToast(string message)
+    {
+        ToastService.ShowSuccess(message);
+    }
+
+    private void ShowErrorToast(string message)
+    {
+        ToastService.ShowError(message);
+    }
+
+
+
+    public void Dispose()
+    {
+        // Stop the timer when the component is disposed
+        timer?.Dispose();
+    }
+}

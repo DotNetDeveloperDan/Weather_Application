@@ -1,0 +1,132 @@
+﻿@page "/cityweather"
+@using WeatherApplication.Models
+@using WeatherApplication.Services.Implementations
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ToastService ToastService
+@implements IDisposable
+
+
+<div>
+    <h3>@City.Name, @City.Country</h3>
+    <p>Temperature: @weatherData?.Temperature</p>
+    <p>Humidity: @weatherData?.Humidity</p>
+    <p>Wind Speed: @weatherData?.WindSpeed</p>
+    <br />
+    <p>Last Updated: @lastUpdated</p>
+</div>
+@if (isLoading)
+{
+    <div class="loading-bar"></div>
+}
+
+
+@code {
+    [Parameter]
+    public City City { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+
+    [Parameter]
+    public EventCallback OnUpdate { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnShowErrorToast { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnShowSuccessToast { get; set; }
+
+    private bool isLoading = false;
+    private WeatherData weatherData;
+    private Timer weatherUpdateTimer;
+    private DateTime lastUpdated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LoadWeatherData(City);
+        StartWeatherDataTimer(City);
+    }
+
+    private void StartWeatherDataTimer(City selectedCityPassedIn)
+    {
+        // Stop any existing timer
+        weatherUpdateTimer?.Dispose();
+
+        // Create a new timer to load weather data every 1 minute
+        weatherUpdateTimer = new Timer(async _ => await LoadWeatherData(selectedCityPassedIn), null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+    }
+    private async Task LoadWeatherData(City selectedCityPassedIn)
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            isLoading = true;
+            weatherData = await httpClient.GetFromJsonAsync<WeatherData>($"https://localhost:7069/api/weather/city/{selectedCityPassedIn.Id}");
+            lastUpdated = DateTime.Now;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() => OnShowErrorToast.InvokeAsync($"Unable to load weather data for city. Name:{selectedCityPassedIn.Name} Latitude: {selectedCityPassedIn.Latitude} Longitude: {selectedCityPassedIn.Longitude}"));
+       
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DeleteCityFromDatabase(City city)
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            await httpClient.DeleteAsync($"https://localhost:7069/api/cities/{city.Id}");
+            await InvokeAsync(() => OnShowSuccessToast.InvokeAsync($"City has been removed from the database."));
+            await InvokeAsync(() => OnDelete.InvokeAsync());
+            await InvokeAsync(StateHasChanged);
+            Dispose();
+
+
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() => OnShowErrorToast.InvokeAsync($"Unable to remove the city with ID {city.Id} from database."));
+
+           
+        }
+
+    }
+
+
+
+    private async Task UpdateCity(int id, City city)
+    {
+        try
+        {
+            await Http.PutAsJsonAsync($"https://localhost:7069/api/cities/{city.Id}",city);
+            await InvokeAsync(() => OnShowSuccessToast.InvokeAsync($"City has been updated."));
+            await InvokeAsync(() => OnUpdate.InvokeAsync());
+            await InvokeAsync(StateHasChanged);
+            Dispose();
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() => OnShowErrorToast.InvokeAsync($"Unable to update the city with ID {city.Id} in the database."));
+
+           
+        }
+
+    }
+
+    public void Dispose()
+    {
+        weatherUpdateTimer?.Dispose();
+    }
+}
+

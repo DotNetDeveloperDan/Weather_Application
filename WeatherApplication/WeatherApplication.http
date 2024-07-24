@@ -1,0 +1,9 @@
+﻿@WeatherApplication_HostAddress = https://localhost:7069
+
+GET {{WeatherApplication_HostAddress}}/api/weather/0/weather
+
+###
+
+GET {{WeatherApplication_HostAddress}}/api/weather/city/0
+
+###

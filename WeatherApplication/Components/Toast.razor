@@ -1,0 +1,68 @@
+﻿@inject ToastService ToastService
+@using WeatherApplication.Services.Implementations
+@implements IDisposable
+
+<div class="toast-notification-container">
+    @if (isVisible)
+    {
+        <div class="toast-notification @toastCssClass">
+            <div class="toast-notification-header">
+                <strong class="mr-auto">@toastHeading</strong>
+                <button type="button" class="ml-2 mb-1 close" aria-label="Close" @onclick="HideToast">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="toast-notification-body">
+                @toastMessage
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string toastMessage;
+    private string toastHeading;
+    private string toastCssClass;
+    private bool isVisible;
+    private System.Timers.Timer displayTimer;
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+        ToastService.OnHide += HideToast;
+    }
+
+    private void ShowToast(string message, string heading, string cssClass)
+    {
+        
+
+        toastMessage = message;
+        toastHeading = heading;
+        toastCssClass = cssClass;
+        isVisible = true;
+        InvokeAsync(StateHasChanged); // Ensure the UI updates
+        displayTimer = new System.Timers.Timer(3000);
+        displayTimer.Elapsed += OnTimerElapsed;
+        displayTimer.AutoReset = false;
+        displayTimer.Start();
+    }
+    private void OnTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        // Logic to hide the modal
+        HideToast();
+
+        displayTimer?.Stop();
+        displayTimer?.Dispose();
+    }
+    private void HideToast()
+    {
+        isVisible = false;
+        InvokeAsync(StateHasChanged); // Ensure the UI updates
+    }
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= ShowToast;
+        ToastService.OnHide -= HideToast;
+    }
+}

@@ -11,6 +11,9 @@ obj/
 *.userosscache
 *.sln.docstates
 
+.vs/
+
+
 # Auto-generated files
 *.pidb
 *.log
